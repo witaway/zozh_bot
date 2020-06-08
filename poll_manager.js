@@ -1,9 +1,3 @@
-//Makes PollManager and return middleware configured to work with this manager.
-module.exports = (path) => {
-    let manager = new PollManager(path);
-    return middleware(manager);
-}
-
 /// Gives poll updates information to mager
 /// And listens commands and giving it to the manager to execute.
 let middleware = (manager) => {
@@ -36,6 +30,7 @@ let PollManager = class {
     //Also imports dir with modules if its given.
     constructor(path) {
         this.poll_best_answer = {}
+        this.poll_timeouts = {}
         this.modules = {}
         if(path !== undefined) {
             this.importDirectory(path);
@@ -77,7 +72,7 @@ let PollManager = class {
         if(!verify(ctx)) {
             return;
         } 
-            
+
         //Imports all fields from module
         let text         = getVar(module, 'text', 'string');
         let duration     = getVar(module, 'duration', 'number');
@@ -102,13 +97,13 @@ let PollManager = class {
         this.poll_best_answer[poll_id] = { voter_count: 0 }
     
         //Listens while poll is opened and executes handler of best answer
-        setTimeout(() => {
+        let timeout = setTimeout(() => {
             
             let best_choice = this.poll_best_answer[poll_id].text;
             let best_votes  = this.poll_best_answer[poll_id].voter_count;
     
             if(best_votes == 0) {
-                ctx.reply('No one person have voted. :(');
+                ctx.replyError('Никто не проголосовал. :(');
             } else {
                 //Gives needed handler from answers
                 let handler = answers.find((element) => element.text === best_choice).handler
@@ -118,8 +113,11 @@ let PollManager = class {
             //We need to delete this information to prevent memory leak.
             //Javascript virtual will not delete this itself. 
             delete this.poll_best_answer[poll_id];
+            delete this.poll_timeouts[poll_id];
         
         }, 1000 * duration);
+
+        this.poll_timeouts[poll_id] = timeout;
     }
 
     //Just saves the best answer of the poll of given update.
@@ -162,3 +160,14 @@ let PollManager = class {
     }
 
 }
+
+//Makes PollManager and return middleware configured to work with this manager.
+module.exports = {}
+
+module.exports.make = (path) => {
+    let manager = new PollManager(path);
+    return middleware(manager);
+}
+
+module.exports.middleware = middleware;
+module.exports.Manager = PollManager;
