@@ -2,12 +2,7 @@ module.exports = {
     
     'command': 'voteban',
 
-    'verify': function(ctx) {
-
-        let is_admin = async (user_id) => {
-            const admins = await ctx.getChatAdministrators()
-            return admins.find((member) => member.user.id === user_id ) !== undefined;
-        }
+    'verify': async function(ctx) {
 
         if(!('reply_to_message' in ctx.message)) {
             ctx.replyError('Вы должны ответить на сообщение юзера, которого хотите забанить.')
@@ -15,12 +10,12 @@ module.exports = {
         }
 
         let user_id = ctx.message.from.id;
-        if(!is_admin(user_id)) {
+        if(!(await ctx.is_admin(user_id))) {
             ctx.replyError('Только администратор может создать голосование на бан.')
             return false;
         }
 
-        if(is_admin(ctx.message.reply_to_message.from.id)) {
+        if(await ctx.is_admin(ctx.message.reply_to_message.from.id)) {
             ctx.replyError('Администратора забанить нельзя.');
             return false;
         }

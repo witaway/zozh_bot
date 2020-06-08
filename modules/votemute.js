@@ -2,14 +2,9 @@ module.exports = {
 
     'command': 'votemute',
 
-    'verify': function (ctx) {
+    'verify': async function (ctx) {
 
         let args = ctx.state.command.args;
-
-        let is_admin = async (user_id) => {
-            const admins = await ctx.getChatAdministrators()
-            return admins.find((member) => member.user.id === user_id ) !== undefined;
-        }
 
         if (!('reply_to_message' in ctx.message)) {
             ctx.replyError('Вы должны ответить на сообщение юзера, которого хотите замутить.')
@@ -44,7 +39,7 @@ module.exports = {
             return false;
         }
 
-        if(is_admin(ctx.message.reply_to_message.from.id)) {
+        if(await ctx.is_admin(ctx.message.reply_to_message.from.id)) {
             ctx.replyError('Администратора замьютить нельзя.');
             return false;
         }

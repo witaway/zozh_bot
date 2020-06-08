@@ -21,23 +21,29 @@ let slashify = (text_x) => {
     return text;
 }
 
-///Add ctx.replyBot (italian) and ctx.replyError (bold)
+///Add ctx.replyBot (italian), ctx.replyError (bold), is_admin functions and add mailing_list
 bot.use((ctx, next) => {
+
     ctx.replyBot = (text) => {
         console.log(`reply: ${text}`);
         text = slashify(text)
         ctx.replyWithMarkdownV2(`_${text}_`);
     }
+
     ctx.replyError = (text) => {
         console.log(`error: ${text}`);
         text = slashify(text);
         ctx.replyWithMarkdownV2(`*_${text}_*`);    
     }
-    next();
-}) 
 
-bot.use((ctx, next) => {
+    let is_admin = async (user_id) => {
+        const admins = await ctx.getChatAdministrators()
+        return admins.find((member) => member.user.id === user_id ) !== undefined;
+    }
+    ctx.is_admin = is_admin;
+
     ctx.state.mailinglist = mailinglist;
+
     next();
 }) 
 
@@ -89,12 +95,8 @@ bot.command('unsubscribe', (ctx) => {
     }
 })
 
-bot.command('stopvote', (ctx) => {
+bot.command('stopvote', async (ctx) => {
     try {
-        let is_admin = async (user_id) => {
-            const admins = await ctx.getChatAdministrators()
-            return admins.find((member) => member.user.id === user_id ) !== undefined;
-        }
 
         if(!('reply_to_message' in ctx.message)) {
             ctx.replyError('Вы должны переслать опрос, который надо остановить.')
@@ -109,7 +111,7 @@ bot.command('stopvote', (ctx) => {
         let user_id = ctx.message.from.id;
         let poll_id = ctx.message.reply_to_message.poll.id;
         
-        if(is_admin(user_id)) {
+        if(await ctx.is_admin(user_id)) {
             try {
                 clearTimeout(manager.poll_timeouts[poll_id]);
                 delete manager.poll_timeouts[poll_id];
@@ -129,12 +131,8 @@ bot.command('stopvote', (ctx) => {
 })
 
 
-bot.command('revoke_ban', (ctx) => {
+bot.command('revoke_ban', async (ctx) => {
     try {
-        let is_admin = async (user_id) => {
-            const admins = await ctx.getChatAdministrators()
-            return admins.find((member) => member.user.id === user_id ) !== undefined;
-        }
 
         if(!('reply_to_message' in ctx.message)) {
             ctx.replyError('Вы должны переслать сообщение человека, которого надо разбанить.')
@@ -146,7 +144,7 @@ bot.command('revoke_ban', (ctx) => {
         let reply_id = ctx.message.reply_to_message.from.id;
         
 
-        if(is_admin(user_id)) {
+        if(await ctx.is_admin(user_id)) {
             ctx.telegram.unbanChatMember(
                 chat_id,
                 reply_id
