@@ -20,6 +20,11 @@ module.exports = {
             return false;
         }
 
+        if(is_admin(ctx.message.reply_to_message.from.id)) {
+            ctx.replyError('Администратора забанить нельзя.');
+            return false;
+        }
+
         return true;
     },
 
@@ -49,6 +54,7 @@ module.exports = {
                 )
 
                 ctx.replyBot(`@${ctx.state.username} уходит в бан.`);
+                ctx.log('Log', `@${ctx.state.username} banned.`)
             }
         },
 

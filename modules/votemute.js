@@ -6,6 +6,11 @@ module.exports = {
 
         let args = ctx.state.command.args;
 
+        let is_admin = async (user_id) => {
+            const admins = await ctx.getChatAdministrators()
+            return admins.find((member) => member.user.id === user_id ) !== undefined;
+        }
+
         if (!('reply_to_message' in ctx.message)) {
             ctx.replyError('Вы должны ответить на сообщение юзера, которого хотите замутить.')
             return false;
@@ -36,6 +41,11 @@ module.exports = {
 
         if (ban_time < 30 || ban_time > (60 * 60 * 24 * 365)) {
             ctx.replyError('Человека нельзя замьютить меньше, чем на 30 секунд или больше, чем на 1 год.');
+            return false;
+        }
+
+        if(is_admin(ctx.message.reply_to_message.from.id)) {
+            ctx.replyError('Администратора замьютить нельзя.');
             return false;
         }
 
@@ -96,6 +106,7 @@ module.exports = {
                 let mute_time_str = time_to_str(Number(args[0]), args[1])
 
                 ctx.replyBot(`@${ctx.state.username} уходит в мут на ${mute_time_str}.`);
+                ctx.log('Log', `@${ctx.state.username} muted for ${args.join(' ')}`);
             }
         },
 
