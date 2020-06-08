@@ -45,12 +45,15 @@ let PollManager = class {
 
     //Executes command
     async executePoll(command, ctx) {
-        try{
+        //try{
             //Helps get fields from module.
             //Return field named field
             //If its undefined - exception, if type of it is not stdtype - exception,
             //If it is not a function that returned stdtype - exception. (also gives ctx to these functions)
-            let getVar = (module, field, stdtype) => {
+            let getVar = async (module, field, stdtype) => {
+
+                let isAsync = (f) => f.constructor.name === "AsyncFunction";
+                
                 if(typeof(module[field]) == 'undefined') {
                     throw `Field ${field} is undefined`
                 } else 
@@ -58,7 +61,15 @@ let PollManager = class {
                     return module[field]
                 } else
                 if(typeof(module[field]) == 'function') {
-                    let ret = module[field](ctx)
+                    
+                    let f = module[field];
+                    let ret;
+                    if(isAsync(f)) {
+                        ret = await f(ctx);
+                    } else {
+                        ret = f(ctx); 
+                    }
+
                     if(typeof(ret) == stdtype) {
                         return ret;
                     } else {
@@ -70,16 +81,16 @@ let PollManager = class {
             let module = this.modules[command]
 
             //Verification
-            let verify = getVar(module, 'verify', 'function');
-            if(!verify(ctx)) {
+            let good = await getVar(module, 'verify', 'boolean');
+            if(!good) {
                 return;
             } 
 
             //Imports all fields from module
-            let text         = getVar(module, 'text', 'string');
-            let duration     = getVar(module, 'duration', 'number');
-            let is_anonymous = getVar(module, 'is_anonymous', 'boolean');
-            let answers      = getVar(module, 'answers', 'object');
+            let text         = await getVar(module, 'text', 'string');
+            let duration     = await getVar(module, 'duration', 'number');
+            let is_anonymous = await getVar(module, 'is_anonymous', 'boolean');
+            let answers      = await getVar(module, 'answers', 'object');
 
             //Makes the list of choices (that we need to send to tg api)
             let choices = answers.reduce((accum, cur) => {
@@ -120,11 +131,11 @@ let PollManager = class {
             }, 1000 * duration);
 
             this.poll_timeouts[poll_id] = timeout;
-        } catch(e) {
-            ctx.log('Error', `Exception: ${e}`);
-            ctx.log('Error', `Command: ${command}, user: @${ctx.message.from.username}, message: ${ctx.message.text}`);
-            ctx.replyError('Неизвестная ошибка. Подробные сведения переданы администраторам.');
-        }
+        // } catch(e) {
+        //     ctx.log('Error', `Exception: ${e}`);
+        //     ctx.log('Error', `Command: ${command}, user: @${ctx.message.from.username}, message: ${ctx.message.text}`);
+        //     ctx.replyError('Неизвестная ошибка. Подробные сведения переданы администраторам.');
+        // }
     }
 
     //Just saves the best answer of the poll of given update.

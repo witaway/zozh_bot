@@ -145,11 +145,16 @@ bot.command('revoke_ban', async (ctx) => {
         
 
         if(await ctx.is_admin(user_id)) {
-            ctx.telegram.unbanChatMember(
-                chat_id,
-                reply_id
-            );
-            ctx.replyBot('Бан отменён.');
+            let member_info = await ctx.telegram.getChatMember(chat_id, reply_id);
+            if(member_info.status === 'kicked') {
+                ctx.telegram.unbanChatMember(
+                    chat_id,
+                    reply_id
+                );
+                ctx.replyBot('Бан отменён.');
+            } else {
+                ctx.replyError('Пользователь не забанен.');
+            }
         } else {
             ctx.replyError('Только администратор может отменить бан.');
         }
